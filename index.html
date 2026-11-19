@@ -315,7 +315,61 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),2200)}
 
 const todayISO=()=>new Date().toISOString().slice(0,10);
+  const todayISO=()=>{
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+};
 
+const defaultState={
+  pin:"1234",
+  lastDate:todayISO(),
+  dayMode:"college",
+  blocks:[
+    ["09:00","College Lectures & Pattern Drafting Lab",0],
+    ["11:00","Textile & Surface Ornamentation Studio",0],
+    ["13:00","College Wrap-Up & Lunch Break",0],
+    ["16:00","Next Project: Indo-Western Silhouette & Flat Sketch",0],
+    ["19:30","Portfolio Lookboard & Embroidery Notes",0]
+  ],
+  sunBlocks:[
+    ["10:00","Weekly Reset & College Notes Review",0],
+    ["12:30","Fabric Market Research & Thread Shade Swatches",0],
+    ["16:30","Interactive Portfolio & 3D Garment Preview Build",0],
+    ["20:00","Plan Monday College & Project Priorities",0]
+  ],
+  rems:[
+    {t:"Submit 12-head Indo-Western fashion illustration sheet",c:"College",p:"High",tm:"09:30",d:0},
+    {t:"Build interactive lookboard & fabric zoom for Next Project",c:"Next Project",p:"High",tm:"17:00",d:0},
+    {t:"Finalize Kutch mirror-work & peacock motif placement",c:"Next Project",p:"Medium",tm:"18:30",d:0},
+    {t:"Source cotton satin & muslin swatches",c:"Personal",p:"Low",tm:"14:30",d:0}
+  ],
+  rf:"All",rc:"College",
+  salary:45000,save:10000,
+  exp:[
+    {a:80,cat:"College & Canteen",m:"GPay",n:"College Canteen Tea & Snacks",date:todayISO()},
+    {a:180,cat:"Fabric & Art",m:"Samsung Wallet",n:"Muslin Swatch & Drawing Sheets",date:todayISO()}
+  ],
+  cat:"College & Canteen",
+  bills:[["Room / Rent",8000,1],["Wi-Fi & Mobile Plan",899,0],["College & Travel Pass",2200,0]],
+  ideaIdx:0,
+  newsFilter:"All"
+};
+
+let S=JSON.parse(localStorage.getItem(KEY)||"null")||defaultState;
+function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+
+function runDailyRollover(){
+  const today=todayISO();
+  // Update any sample/old date tags to today and roll over unfinished tasks
+  S.exp.forEach(e=>{if(!e.date||e.date<today)e.date=today});
+  if(S.lastDate!==today){
+    S.blocks.forEach(b=>b[2]=0);
+    S.sunBlocks.forEach(b=>b[2]=0);
+    S.rems.forEach(r=>{if(!r.d)r.tm="08:30"});
+    S.lastDate=today;
+    save();
+  }
+}
 const defaultState={
   pin:"1234",
   lastDate:todayISO(),
