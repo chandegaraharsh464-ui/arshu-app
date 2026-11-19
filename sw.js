@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arshu-college-v3';
+const CACHE_NAME = 'arshu-clean-v4';
 const ASSETS = [
   './',
   './index.html',
