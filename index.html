@@ -36,8 +36,8 @@ button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
-/* PIN Lock Overlay */
-#lockScreen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+/* Clean PIN Lock Screen */
+#lockScreen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
 .monogram{width:66px;height:66px;border-radius:20px;background:var(--ink);border:2px solid var(--gold);color:#FAF8F5;font:700 32px Georgia,serif;display:grid;place-items:center;margin-bottom:12px}
 .pin-dots{display:flex;gap:14px;margin:16px 0 24px}
 .pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--gold);transition:.15s}
@@ -45,6 +45,10 @@ button{cursor:pointer;border:0;background:none}
 .keypad{display:grid;grid-template-columns:repeat(3,72px);gap:12px}
 .kbtn{height:58px;border-radius:16px;background:var(--card);border:1px solid var(--line);font:600 21px "Bricolage Grotesque",sans-serif;box-shadow:0 2px 8px rgba(30,28,26,.04)}
 .kbtn:active{background:var(--gold-s);transform:scale(.96)}
+
+/* Email OTP Recovery Box */
+.otp-card{width:100%;max-width:330px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:16px;display:none;box-shadow:0 6px 20px rgba(30,28,26,.06)}
+.otp-card.on{display:block}
 
 .app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
 header{display:flex;align-items:center;gap:10px;padding:14px 18px 8px;background:var(--bg)}
@@ -71,7 +75,7 @@ main{flex:1;overflow-y:auto;padding:8px 18px 26px}
 .btn.ghost{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
 .btn.full{width:100%}
 
-.ring{--p:20;width:54px;height:54px;border-radius:50%;background:conic-gradient(var(--sage) calc(var(--p)*1%),#E5DDD2 0);display:grid;place-items:center;flex:none}
+.ring{--p:0;width:54px;height:54px;border-radius:50%;background:conic-gradient(var(--sage) calc(var(--p)*1%),#E5DDD2 0);display:grid;place-items:center;flex:none}
 .ring b{width:42px;height:42px;border-radius:50%;background:#FFFDF9;display:grid;place-items:center;font-size:12.5px;color:var(--ink)}
 
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
@@ -117,6 +121,8 @@ input,select{background:var(--bg);border:1px solid var(--line);border-radius:12p
 .pill.world{background:var(--sky-s);color:var(--sky)}
 .pill.tech{background:var(--sage-s);color:var(--sage)}
 
+.empty-state{padding:18px 12px;text-align:center;color:var(--mute);font-size:13px;background:var(--bg);border:1px dashed var(--line);border-radius:14px;margin:8px 0}
+
 .fab{position:fixed;right:max(18px,calc(50% - 222px));bottom:calc(82px + env(safe-area-inset-bottom,0px));width:54px;height:54px;border-radius:18px;background:var(--ink);color:#FAF8F5;font-size:28px;box-shadow:0 6px 18px rgba(30,28,26,.2);z-index:5}
 .sheet{position:fixed;inset:0;background:rgba(30,28,26,.4);display:none;align-items:flex-end;z-index:20}
 .sheet.on{display:flex}
@@ -147,11 +153,11 @@ nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px
 </head>
 <body>
 
-<!-- PIN Lock Screen -->
+<!-- Clean PIN Lock Screen with Email OTP Verification -->
 <div id="lockScreen">
   <div class="monogram">A</div>
   <h2 style="font-size:20px;">Arshu</h2>
-  <p class="sub" style="margin:4px 0 0;">Enter 4-digit PIN (Default: 1234)</p>
+  <p class="sub" style="margin:4px 0 0;">Enter 4-digit PIN</p>
   <div class="pin-dots" id="pinDots">
     <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
   </div>
@@ -169,15 +175,33 @@ nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px
     <button type="button" class="kbtn" data-k="0">0</button>
     <button type="button" class="kbtn" style="font-size:13px;color:var(--gold);" id="pinEnter">Enter</button>
   </div>
-  <button type="button" id="pinReset" style="margin-top:20px;font-size:12.5px;color:var(--mute);text-decoration:underline;">Forgot PIN? Reset to 1234</button>
+
+  <button type="button" id="forgotPinBtn" style="margin-top:20px;font-size:13px;color:var(--gold);font-weight:600;">Forgot PIN? Verify via Email</button>
+
+  <!-- Email Verification Panel -->
+  <div class="otp-card" id="otpPanel">
+    <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Email Verification</div>
+    <p class="sub" style="margin:0 0 10px;font-size:12.5px;">Verify your registered email to set a new PIN:</p>
+    <input type="email" id="verifyEmailInput" placeholder="Enter your registered email" style="margin-bottom:8px;">
+    <button type="button" class="btn gold full" id="sendOtpBtn" style="margin-bottom:10px;">Send Verification Code</button>
+
+    <div id="otpVerifyStep" style="display:none;border-top:1px solid var(--line);padding-top:10px;">
+      <p class="sub" id="otpSentHint" style="margin:0 0 8px;color:var(--sage);font-weight:600;"></p>
+      <div class="g2" style="margin-bottom:8px;">
+        <input type="text" inputmode="numeric" maxlength="6" id="otpCodeInput" placeholder="6-digit code">
+        <input type="password" inputmode="numeric" maxlength="4" id="otpNewPinInput" placeholder="New 4-digit PIN">
+      </div>
+      <button type="button" class="btn full" id="confirmOtpPinBtn">Verify & Update PIN</button>
+    </div>
+  </div>
 </div>
 
 <div class="app">
 <header>
   <div class="av">A</div>
-  <div class="hi"><h1 id="greet">Good morning, Arshu</h1><small id="dateSub">College, Studio & Daily Money</small></div>
+  <div class="hi"><h1 id="greet">Good evening, Arshu</h1><small id="dateSub"></small></div>
   <button class="ic" aria-label="Voice add" id="mic" title="Voice Add"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-  <button class="ic" aria-label="College & Reminders" data-go="rem" title="Reminders"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></svg><span class="badge" id="bdg">0</span></button>
+  <button class="ic" aria-label="College & Reminders" data-go="rem" title="Reminders"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></svg><span class="badge" id="bdg" style="display:none;">0</span></button>
   <button class="ic" aria-label="Lock App" id="lockBtn" title="Lock App"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
 </header>
 
@@ -186,18 +210,18 @@ nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px
 <section class="view on" id="v-today">
   <div class="card now">
     <div class="row sp">
-      <div><span class="sub" id="nowLbl">College Hours · 09:00</span><h2 id="nowTitle"></h2></div>
-      <div class="ring" id="ring"><b id="ringTx">0/5</b></div>
+      <div><span class="sub" id="nowLbl">Today’s Focus</span><h2 id="nowTitle">No blocks scheduled yet</h2></div>
+      <div class="ring" id="ring"><b id="ringTx">0/0</b></div>
     </div>
     <div class="row sp">
-      <button class="btn gold" id="nowBtn">Mark done</button>
-      <span class="sub" style="color:var(--mute);font-weight:500;" id="nextUp"></span>
+      <button class="btn gold" id="nowBtn" hidden>Mark done</button>
+      <span class="sub" style="color:var(--mute);font-weight:500;" id="nextUp">Add your first block below</span>
     </div>
   </div>
 
   <div class="stats">
-    <div class="card"><span class="sub">Safe to spend today</span><div class="num big" style="color:var(--sage)" id="left">₹0</div><div class="bar"><i id="leftBar" style="width:13%"></i></div><span class="sub" id="spentTx">₹0 spent today</span></div>
-    <div class="card"><span class="sub">Tomorrow’s Carry-Over</span><div class="num big" style="font-size:21px;color:var(--sky)" id="carryCount">0 tasks</div><span class="sub" id="carrySub">Auto-reminds tomorrow</span></div>
+    <div class="card"><span class="sub">Safe to spend today</span><div class="num big" style="color:var(--sage)" id="left">₹0</div><div class="bar"><i id="leftBar" style="width:0%"></i></div><span class="sub" id="spentTx">₹0 spent today</span></div>
+    <div class="card"><span class="sub">Tomorrow’s Carry-Over</span><div class="num big" style="font-size:21px;color:var(--sky)" id="carryCount">0 tasks</div><span class="sub" id="carrySub">No pending tasks</span></div>
   </div>
 
   <div class="card">
@@ -206,7 +230,7 @@ nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px
       <div class="seg" id="dayType"><button class="on">College Day</button><button>Sunday</button></div>
     </div>
     <div class="sub" style="margin-top:4px">College: 9:00 AM – 1:00 PM · Tap block to advance</div>
-    <div class="tl" id="tl"></div>
+    <div id="tl"></div>
     <form class="add" id="addBlock" autocomplete="off">
       <input type="time" id="bt" aria-label="Time" style="width:112px" required>
       <input type="text" id="bn" placeholder="Add lecture, studio or task..." required>
@@ -221,7 +245,7 @@ nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px
     <div class="row sp">
       <div style="flex:1;padding-right:8px;">
         <strong style="font-size:13.5px;color:var(--sky);">Tomorrow’s Auto-Reminder Queue</strong>
-        <div class="sub" id="nextDayPreviewText">Unfinished tasks automatically carry forward to tomorrow morning.</div>
+        <div class="sub" id="nextDayPreviewText">Any unfinished tasks you add will automatically carry forward to tomorrow morning.</div>
       </div>
       <button class="btn ghost" style="padding:6px 10px;font-size:12px;white-space:nowrap;" id="rolloverBtn">Roll Over</button>
     </div>
@@ -258,9 +282,9 @@ nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px
 <!-- TAB 4: MONEY & BACKUP -->
 <section class="view" id="v-money">
   <div class="card">
-    <div class="row sp"><h2>Monthly budget</h2><button class="btn ghost" style="padding:6px 12px" id="editSal">Edit</button></div>
+    <div class="row sp"><h2>Monthly budget</h2><button class="btn ghost" style="padding:6px 12px" id="editSal">Set Budget</button></div>
     <div class="sub">Left to spend this month</div>
-    <div class="num big" id="remain" style="font-size:34px;color:var(--sage)"></div>
+    <div class="num big" id="remain" style="font-size:34px;color:var(--sage)">₹0</div>
     <div class="alloc" id="alloc"></div>
     <div class="leg" id="leg"></div>
   </div>
@@ -277,11 +301,19 @@ nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px
   <div class="card">
     <div class="row sp"><h2>Monthly bills & fees</h2><span class="sub" id="billTot"></span></div>
     <div id="bills" style="margin-top:6px"></div>
+    <div class="add">
+      <input type="text" id="newBillName" placeholder="Bill name (e.g. Wi-Fi)">
+      <input type="number" id="newBillAmt" placeholder="₹" style="max-width:95px">
+      <button class="btn ghost" id="addBillBtn">Add</button>
+    </div>
   </div>
   <div class="card">
-    <h2>Auto-Capture, PIN & Backup</h2>
-    <div class="sub" style="margin-bottom:8px;">Auto-trigger URL for MacroDroid: <code>?auto=1&amp;amount=150&amp;mode=GPay&amp;merchant=UPI</code></div>
-    <div class="add" style="border:0;padding-top:4px"><input type="password" inputmode="numeric" maxlength="4" id="newPin" placeholder="New 4-digit PIN"><button class="btn" id="setPin" style="white-space:nowrap">Save PIN</button></div>
+    <h2>Email OTP Setup & Backup</h2>
+    <div class="sub" style="margin-bottom:8px;">Optional Google Apps Script Web App URL for sending live OTP emails to <strong>chandegaraharsh464@gmail.com</strong>:</div>
+    <div class="add" style="border:0;padding-top:2px">
+      <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+      <button class="btn" id="saveGasBtn" style="white-space:nowrap">Save</button>
+    </div>
     <div class="g2" style="margin-top:8px"><button class="btn ghost" id="csv">Export CSV</button><button class="btn ghost" id="json">Backup JSON</button></div>
   </div>
 </section>
@@ -308,48 +340,33 @@ nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px
 <div class="toast" id="toast"></div>
 
 <script>
-const KEY="arshu_college_pwa_v2";
+const KEY="arshu_clean_state_v1";
+const REGISTERED_EMAIL="chandegaraharsh464@gmail.com";
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const fmt=n=>"₹"+Math.round(n).toLocaleString("en-IN");
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function toast(m){const t=$("#toast");if(!t)return;t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),2200)}
+function toast(m){const t=$("#toast");if(!t)return;t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),2500)}
 
 const todayISO=()=>{
   const d=new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 };
 
-const defaultState={
+const emptyState={
   pin:"1234",
+  gasUrl:"",
   lastDate:todayISO(),
   dayMode:"college",
-  blocks:[
-    ["09:00","College Lectures & Pattern Drafting Lab",0],
-    ["11:00","Textile & Surface Ornamentation Studio",0],
-    ["13:00","College Wrap-Up & Lunch Break",0],
-    ["16:00","Next Project: Indo-Western Silhouette & Flat Sketch",0],
-    ["19:30","Portfolio Lookboard & Embroidery Notes",0]
-  ],
-  sunBlocks:[
-    ["10:00","Weekly Reset & College Notes Review",0],
-    ["12:30","Fabric Market Research & Thread Shade Swatches",0],
-    ["16:30","Interactive Portfolio & 3D Garment Preview Build",0],
-    ["20:00","Plan Monday College & Project Priorities",0]
-  ],
-  rems:[
-    {t:"Submit 12-head Indo-Western fashion illustration sheet",c:"College",p:"High",tm:"09:30",d:0},
-    {t:"Build interactive lookboard & fabric zoom for Next Project",c:"Next Project",p:"High",tm:"17:00",d:0},
-    {t:"Finalize Kutch mirror-work & peacock motif placement",c:"Next Project",p:"Medium",tm:"18:30",d:0},
-    {t:"Source cotton satin & muslin swatches",c:"Personal",p:"Low",tm:"14:30",d:0}
-  ],
-  rf:"All",rc:"College",
-  salary:45000,save:10000,
-  exp:[
-    {a:80,cat:"College & Canteen",m:"GPay",n:"College Canteen Tea & Snacks",date:todayISO()},
-    {a:180,cat:"Fabric & Art",m:"Samsung Wallet",n:"Muslin Swatch & Drawing Sheets",date:todayISO()}
-  ],
+  blocks:[],
+  sunBlocks:[],
+  rems:[],
+  rf:"All",
+  rc:"College",
+  salary:0,
+  save:0,
+  exp:[],
   cat:"College & Canteen",
-  bills:[["Room / Rent",8000,1],["Wi-Fi & Mobile Plan",899,0],["College & Travel Pass",2200,0]],
+  bills:[],
   ideaIdx:0,
   newsFilter:"All"
 };
@@ -357,24 +374,25 @@ const defaultState={
 let S;
 try{
   const raw=JSON.parse(localStorage.getItem(KEY)||"null");
-  S=Object.assign({},defaultState,raw||{});
+  S=Object.assign({},emptyState,raw||{});
   if(!/^\d{4}$/.test(String(S.pin||"")))S.pin="1234";
 }catch(e){
-  S=Object.assign({},defaultState);
+  S=Object.assign({},emptyState);
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
-// Bulletproof PIN Lock Controls
-let pinBuf="";
+// PIN Lock & Email Verification OTP Flow
+let pinBuf="",generatedOtp="";
 function syncDots(){$$("#pinDots .pin-dot").forEach((el,i)=>el.classList.toggle("on",i<pinBuf.length))}
 function clearPin(){pinBuf="";syncDots()}
 function checkPin(){
   const activePin=/^\d{4}$/.test(String(S.pin||""))?String(S.pin):"1234";
   if(pinBuf===activePin){
     $("#lockScreen").style.display="none";
+    $("#otpPanel").classList.remove("on");
     clearPin();
   }else{
-    toast("Wrong PIN (Default is 1234)");
+    toast("Incorrect PIN");
     clearPin();
   }
 }
@@ -388,18 +406,67 @@ function pressPin(d){
 $$("#lockScreen .kbtn[data-k]").forEach(btn=>btn.addEventListener("click",()=>pressPin(btn.dataset.k)));
 $("#pinClear").addEventListener("click",clearPin);
 $("#pinEnter").addEventListener("click",checkPin);
-$("#pinReset").addEventListener("click",()=>{S.pin="1234";save();clearPin();toast("PIN reset to 1234")});
 $("#lockBtn").addEventListener("click",()=>{clearPin();$("#lockScreen").style.display="flex"});
-$("#setPin").addEventListener("click",()=>{
-  const v=$("#newPin").value.trim();
-  if(!/^\d{4}$/.test(v))return toast("Enter exactly 4 digits");
-  S.pin=v;$("#newPin").value="";save();toast("New PIN saved");
+
+$("#forgotPinBtn").addEventListener("click",()=>{
+  $("#otpPanel").classList.toggle("on");
+});
+
+$("#sendOtpBtn").addEventListener("click",async()=>{
+  const mail=$("#verifyEmailInput").value.trim().toLowerCase();
+  if(mail!==REGISTERED_EMAIL.toLowerCase()){
+    return toast("Email does not match registered account");
+  }
+  generatedOtp=String(Math.floor(100000+Math.random()*900000));
+  $("#otpVerifyStep").style.display="block";
+
+  if(S.gasUrl && S.gasUrl.startsWith("http")){
+    try{
+      await fetch(S.gasUrl,{
+        method:"POST",
+        mode:"no-cors",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action:"send_otp",email:REGISTERED_EMAIL,otp:generatedOtp})
+      });
+      $("#otpSentHint").textContent="Verification code sent to "+REGISTERED_EMAIL;
+      toast("OTP sent to your Gmail");
+    }catch(e){
+      $("#otpSentHint").textContent="Offline OTP generated for "+REGISTERED_EMAIL+": "+generatedOtp;
+    }
+  }else{
+    $("#otpSentHint").textContent="Verification code for "+REGISTERED_EMAIL+": "+generatedOtp;
+    toast("Verification code generated");
+  }
+});
+
+$("#confirmOtpPinBtn").addEventListener("click",()=>{
+  const enteredCode=$("#otpCodeInput").value.trim();
+  const nextPin=$("#otpNewPinInput").value.trim();
+  if(!generatedOtp || enteredCode!==generatedOtp){
+    return toast("Invalid 6-digit verification code");
+  }
+  if(!/^\d{4}$/.test(nextPin)){
+    return toast("New PIN must be 4 digits");
+  }
+  S.pin=nextPin;
+  save();
+  generatedOtp="";
+  $("#otpCodeInput").value="";
+  $("#otpNewPinInput").value="";
+  $("#otpVerifyStep").style.display="none";
+  $("#otpPanel").classList.remove("on");
+  toast("Email verified! New PIN saved");
+});
+
+$("#saveGasBtn").addEventListener("click",()=>{
+  S.gasUrl=$("#gasUrlInput").value.trim();
+  save();
+  toast("Apps Script URL saved");
 });
 
 // Automatic Next-Day Roll-Over Check
 function runDailyRollover(){
   const today=todayISO();
-  if(Array.isArray(S.exp))S.exp.forEach(e=>{if(!e.date||e.date<today)e.date=today});
   if(S.lastDate!==today){
     if(Array.isArray(S.blocks))S.blocks.forEach(b=>b[2]=0);
     if(Array.isArray(S.sunBlocks))S.sunBlocks.forEach(b=>b[2]=0);
@@ -449,35 +516,46 @@ const ST=["Pending","Active","Done"];
 const getBlocks=()=>S.dayMode==="sunday"?S.sunBlocks:S.blocks;
 
 function dailySafeLimit(){
+  if(!S.salary || S.salary<=0)return 0;
   const now=new Date();
   const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
   const daysLeft=Math.max(1,daysInMonth-now.getDate()+1);
   const pool=Math.max(0,S.salary-S.save-billsTot()-(totalSpent()-todaySpent()));
-  return Math.max(200,Math.floor(pool/daysLeft));
+  return Math.floor(pool/daysLeft);
 }
 
 function renderToday(){
   const blks=getBlocks();
-  $("#tl").innerHTML=blks.map((b,i)=>`<button class="blk ${["","prog","done"][b[2]]}" data-i="${i}"><span class="dot">${b[2]==2?"✓":""}</span><span class="t">${b[0]}</span><span class="n">${esc(b[1])}</span><span class="tag">${ST[b[2]]}</span></button>`).join("");
+  if(!blks.length){
+    $("#tl").innerHTML=`<div class="empty-state">No schedule blocks yet. Add your 09:00 AM – 01:00 PM college or studio blocks below.</div>`;
+  }else{
+    $("#tl").innerHTML=`<div class="tl">`+blks.map((b,i)=>`<button class="blk ${["","prog","done"][b[2]]}" data-i="${i}"><span class="dot">${b[2]==2?"✓":""}</span><span class="t">${b[0]}</span><span class="n">${esc(b[1])}</span><span class="tag">${ST[b[2]]}</span></button>`).join("")+`</div>`;
+  }
   const done=blks.filter(b=>b[2]==2).length,cur=blks.find(b=>b[2]==1)||blks.find(b=>b[2]==0);
-  $("#ring").style.setProperty("--p",done/Math.max(1,blks.length)*100);$("#ringTx").textContent=done+"/"+blks.length;
-  if(cur){
+  $("#ring").style.setProperty("--p",blks.length?(done/blks.length*100):0);$("#ringTx").textContent=done+"/"+blks.length;
+  if(!blks.length){
+    $("#nowLbl").textContent="Ready to Plan";
+    $("#nowTitle").textContent="Your day is open";
+    $("#nowBtn").hidden=true;$("#nextUp").textContent="Add your first block below";
+  }else if(cur){
     $("#nowLbl").textContent=(cur[2]==1?"In Progress":"Up Next")+" · "+cur[0];
     $("#nowTitle").textContent=cur[1];
     $("#nowBtn").textContent=cur[2]==1?"Mark done":"Start block";
     $("#nowBtn").hidden=false;
     const nx=blks.find(b=>b[2]==0&&b!==cur);
     $("#nextUp").textContent=nx?"Next at "+nx[0]:"Final block today";
-  } else {
+  }else{
     $("#nowLbl").textContent="Completed";
     $("#nowTitle").textContent="All blocks finished for today!";
     $("#nowBtn").hidden=true;$("#nextUp").textContent="";
   }
   const lim=dailySafeLimit(),s=todaySpent(),l=Math.max(lim-s,0);
-  $("#left").textContent=fmt(l);$("#leftBar").style.width=Math.min(s/lim*100,100)+"%";$("#spentTx").textContent=fmt(s)+" of "+fmt(lim)+" spent";
+  $("#left").textContent=fmt(l);
+  $("#leftBar").style.width=(lim>0?Math.min(s/lim*100,100):0)+"%";
+  $("#spentTx").textContent=lim>0?`${fmt(s)} of ${fmt(lim)} spent`:`${fmt(s)} spent today`;
   const pendingCount=S.rems.filter(r=>!r.d).length;
   $("#carryCount").textContent=pendingCount+" task"+(pendingCount===1?"":"s");
-  $("#carrySub").textContent=pendingCount?"Will remind you tomorrow morning":"All tasks clear for tomorrow";
+  $("#carrySub").textContent=pendingCount?"Will remind you tomorrow morning":"No pending tasks";
 }
 
 $("#tl").onclick=e=>{const b=e.target.closest(".blk");if(!b)return;const blks=getBlocks();blks[b.dataset.i][2]=(blks[b.dataset.i][2]+1)%3;save();renderToday()};
@@ -492,10 +570,11 @@ function renderRem(){
   const cats=["All",...RC];
   $("#rf").innerHTML=cats.map(c=>`<button class="chip ${S.rf==c?"on":""}" data-c="${c}">${c}<em>${S.rems.filter(r=>!r.d&&(c=="All"||r.c==c)).length}</em></button>`).join("");
   const L=S.rems.filter(r=>S.rf=="All"||r.c==S.rf).sort((a,b)=>a.d-b.d||a.tm.localeCompare(b.tm));
-  $("#rl").innerHTML=L.length?L.map(r=>`<div class="rem ${r.p} ${r.d?"done":""}"><button class="chk" data-id="${S.rems.indexOf(r)}">${r.d?"✓":""}</button><div class="tx">${esc(r.t)}<small>${r.c} · ${r.p} priority · Auto-reminds tomorrow</small></div><span class="due ${!r.d&&r.p=="High"?"soon":""}">${r.tm}</span></div>`).join(""):`<div class="card sub">No reminders in this folder.</div>`;
+  $("#rl").innerHTML=L.length?L.map(r=>`<div class="rem ${r.p} ${r.d?"done":""}"><button class="chk" data-id="${S.rems.indexOf(r)}">${r.d?"✓":""}</button><div class="tx">${esc(r.t)}<small>${r.c} · ${r.p} priority · Auto-reminds tomorrow</small></div><span class="due ${!r.d&&r.p=="High"?"soon":""}">${r.tm}</span></div>`).join(""):`<div class="empty-state">No tasks or reminders yet. Tap + to add your college or project work.</div>`;
   const open=S.rems.filter(r=>!r.d);
   $("#bdg").textContent=open.length;
-  $("#nextDayPreviewText").textContent=open.length?`${open.length} pending item(s) queued for tomorrow: "${open[0].t}"`:"Everything completed! Tomorrow's slate is clean.";
+  $("#bdg").style.display=open.length?"grid":"none";
+  $("#nextDayPreviewText").textContent=open.length?`${open.length} pending item(s) queued for tomorrow: "${open[0].t}"`:"No pending tasks. Everything you add here auto-carries forward until completed.";
 }
 $("#rf").onclick=e=>{const c=e.target.closest(".chip");if(c){S.rf=c.dataset.c;renderRem()}};
 $("#rl").onclick=e=>{const c=e.target.closest(".chk");if(c){S.rems[c.dataset.id].d^=1;save();renderRem();renderToday()}};
@@ -535,26 +614,40 @@ $$("#newsFilter button").forEach(b=>b.onclick=()=>{
 });
 
 function renderMoney(){
-  const s=totalSpent(),b=billsTot(),left=S.salary-S.save-b-s;
+  const s=totalSpent(),b=billsTot(),left=Math.max(0,S.salary-S.save-b-s);
   $("#remain").textContent=fmt(left);
-  const parts=[["Savings",S.save,"var(--gold)"],["Bills",b,"var(--sky)"],["Spent",s,"var(--coral)"],["Left",Math.max(left,0),"var(--sage)"]];
+  const parts=[["Savings",S.save,"var(--gold)"],["Bills",b,"var(--sky)"],["Spent",s,"var(--coral)"],["Left",left,"var(--sage)"]];
   $("#alloc").innerHTML=parts.map(p=>`<i style="flex:${Math.max(1,p[1])};background:${p[2]}"></i>`).join("");
   $("#leg").innerHTML=parts.map(p=>`<span style="--c:${p[2]}">${p[0]} <b>${fmt(p[1])}</b></span>`).join("");
-  $("#exl").innerHTML=S.exp.slice().reverse().slice(0,15).map(e=>`<div class="ex"><span>${esc(e.n||e.cat)}<br><small class="sub">${e.cat} · ${e.m}</small></span><b style="color:var(--coral)">−${fmt(e.a)}</b></div>`).join("");
-  $("#bills").innerHTML=S.bills.map((x,i)=>`<button class="bill ${x[2]?"paid":""}" data-i="${i}"><span class="chk" style="${x[2]?"background:var(--sage);border-color:var(--sage)":""}">${x[2]?"✓":""}</span><span class="tx"><b>${x[0]}</b><br><small class="sub">${fmt(x[1])}</small></span><span class="tag">${x[2]?"Paid":"Mark paid"}</span></button>`).join("");
+  $("#exl").innerHTML=S.exp.length?S.exp.slice().reverse().slice(0,15).map(e=>`<div class="ex"><span>${esc(e.n||e.cat)}<br><small class="sub">${e.cat} · ${e.m} · ${e.date}</small></span><b style="color:var(--coral)">−${fmt(e.a)}</b></div>`).join(""):`<div class="empty-state">No expenses recorded yet.</div>`;
+  $("#bills").innerHTML=S.bills.length?S.bills.map((x,i)=>`<button class="bill ${x[2]?"paid":""}" data-i="${i}"><span class="chk" style="${x[2]?"background:var(--sage);border-color:var(--sage)":""}">${x[2]?"✓":""}</span><span class="tx"><b>${esc(x[0])}</b><br><small class="sub">${fmt(x[1])}</small></span><span class="tag">${x[2]?"Paid":"Mark paid"}</span></button>`).join(""):`<div class="empty-state">No monthly bills added yet.</div>`;
   $("#billTot").textContent="Total "+fmt(b);
+  $("#gasUrlInput").value=S.gasUrl||"";
   $$("#cats .chip").forEach(x=>x.classList.toggle("on",x.dataset.c==S.cat));
 }
 $("#cats").innerHTML=CATS.map(c=>`<button class="chip" data-c="${c}">${c}</button>`).join("");
 $("#cats").onclick=e=>{const c=e.target.closest(".chip");if(c){S.cat=c.dataset.c;renderMoney()}};
 $("#bills").onclick=e=>{const b=e.target.closest(".bill");if(b){S.bills[b.dataset.i][2]^=1;save();renderMoney()}};
+$("#addBillBtn").onclick=()=>{
+  const n=$("#newBillName").value.trim(),a=parseFloat($("#newBillAmt").value);
+  if(!n||!(a>0))return toast("Enter bill name and ₹ amount");
+  S.bills.push([n,a,0]);$("#newBillName").value="";$("#newBillAmt").value="";save();renderMoney();toast("Bill added");
+};
 function addEx(a,cat,m,n){S.exp.push({a,cat,m,n,date:todayISO()});save();renderMoney();renderToday();toast(fmt(a)+" added")}
 $("#addEx").onclick=()=>{const a=parseFloat($("#amt").value);if(!(a>0)){toast("Enter amount first");$("#amt").focus();return}
   addEx(a,S.cat,$("#mode").value,$("#note").value.trim());$("#amt").value="";$("#note").value=""};
 $("#gpay").onclick=()=>addEx(120,"College & Canteen","GPay","UPI Auto-Log");
 $("#fill").onclick=()=>{const t=$("#sms").value,m=t.match(/(?:Rs\.?|INR|₹)\s?([\d,]+(?:\.\d+)?)/i);
   if(!m){toast("Could not find ₹ amount");return}$("#amt").value=m[1].replace(/,/g,"");$("#sms").value="";toast("Amount filled in")};
-$("#editSal").onclick=()=>{const v=parseFloat(prompt("Monthly budget/salary in ₹",S.salary));if(v>0){S.salary=v;save();renderMoney()}};
+$("#editSal").onclick=()=>{
+  const v=parseFloat(prompt("Enter Monthly Budget / Salary in ₹",S.salary||""));
+  if(!isNaN(v)&&v>=0){
+    S.salary=v;
+    const sv=parseFloat(prompt("Enter Monthly Savings Target in ₹",S.save||0));
+    if(!isNaN(sv)&&sv>=0)S.save=sv;
+    save();renderMoney();renderToday();
+  }
+};
 
 $("#mic").onclick=()=>{
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -579,7 +672,7 @@ $("#json").onclick=()=>{
 function go(v){$$(".view").forEach(x=>x.classList.toggle("on",x.id=="v-"+v));$$("nav button").forEach(b=>b.classList.toggle("on",b.dataset.go==v));$("#fab").hidden=v!="rem";$("main").scrollTop=0}
 $$("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
 const h=new Date().getHours();$("#greet").textContent=(h<12?"Good morning":h<17?"Good afternoon":"Good evening")+", Arshu";
-$("#dateSub").textContent=new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})+" · College & Studio";
+$("#dateSub").textContent=new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
 
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
 runDailyRollover();
