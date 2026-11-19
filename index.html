@@ -133,7 +133,6 @@ input,select{background:var(--bg);border:1px solid var(--line);border-radius:12p
 .bill{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);width:100%;text-align:left}
 .bill .tx{flex:1}.bill.paid .tx b{color:var(--mute);font-weight:500}
 details summary{cursor:pointer;font-weight:600;padding:2px 0;font-size:13.5px}
-details ol{padding-left:20px;color:var(--mute);margin:8px 0 0;font-size:13px}details li{margin-bottom:5px}
 code{background:var(--bg);padding:2px 5px;border-radius:5px;font-size:11.5px;word-break:break-all}
 
 nav{display:flex;background:var(--card);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
@@ -142,7 +141,7 @@ nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;st
 nav button.on{color:var(--gold);font-weight:600}
 nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px;border-radius:2px;background:var(--gold)}
 
-.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#FAF8F5;padding:9px 15px;border-radius:12px;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#FAF8F5;padding:9px 15px;border-radius:12px;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:1200;white-space:nowrap}
 .toast.on{opacity:1}
 </style>
 </head>
@@ -157,19 +156,20 @@ nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px
     <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
   </div>
   <div class="keypad">
-    <button class="kbtn" onclick="pressPin('1')">1</button>
-    <button class="kbtn" onclick="pressPin('2')">2</button>
-    <button class="kbtn" onclick="pressPin('3')">3</button>
-    <button class="kbtn" onclick="pressPin('4')">4</button>
-    <button class="kbtn" onclick="pressPin('5')">5</button>
-    <button class="kbtn" onclick="pressPin('6')">6</button>
-    <button class="kbtn" onclick="pressPin('7')">7</button>
-    <button class="kbtn" onclick="pressPin('8')">8</button>
-    <button class="kbtn" onclick="pressPin('9')">9</button>
-    <button class="kbtn" style="font-size:13px;" onclick="clearPin()">Clear</button>
-    <button class="kbtn" onclick="pressPin('0')">0</button>
-    <button class="kbtn" style="font-size:13px;color:var(--gold);" onclick="checkPin()">Enter</button>
+    <button type="button" class="kbtn" data-k="1">1</button>
+    <button type="button" class="kbtn" data-k="2">2</button>
+    <button type="button" class="kbtn" data-k="3">3</button>
+    <button type="button" class="kbtn" data-k="4">4</button>
+    <button type="button" class="kbtn" data-k="5">5</button>
+    <button type="button" class="kbtn" data-k="6">6</button>
+    <button type="button" class="kbtn" data-k="7">7</button>
+    <button type="button" class="kbtn" data-k="8">8</button>
+    <button type="button" class="kbtn" data-k="9">9</button>
+    <button type="button" class="kbtn" style="font-size:13px;" id="pinClear">Clear</button>
+    <button type="button" class="kbtn" data-k="0">0</button>
+    <button type="button" class="kbtn" style="font-size:13px;color:var(--gold);" id="pinEnter">Enter</button>
   </div>
+  <button type="button" id="pinReset" style="margin-top:20px;font-size:12.5px;color:var(--mute);text-decoration:underline;">Forgot PIN? Reset to 1234</button>
 </div>
 
 <div class="app">
@@ -308,14 +308,13 @@ nav button.on:before{content:"";position:absolute;top:-7px;width:24px;height:3px
 <div class="toast" id="toast"></div>
 
 <script>
-const KEY="arshu_college_pwa_v1";
+const KEY="arshu_college_pwa_v2";
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const fmt=n=>"₹"+Math.round(n).toLocaleString("en-IN");
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),2200)}
+function toast(m){const t=$("#toast");if(!t)return;t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),2200)}
 
-const todayISO=()=>new Date().toISOString().slice(0,10);
-  const todayISO=()=>{
+const todayISO=()=>{
   const d=new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 };
@@ -355,70 +354,58 @@ const defaultState={
   newsFilter:"All"
 };
 
-let S=JSON.parse(localStorage.getItem(KEY)||"null")||defaultState;
-function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+let S;
+try{
+  const raw=JSON.parse(localStorage.getItem(KEY)||"null");
+  S=Object.assign({},defaultState,raw||{});
+  if(!/^\d{4}$/.test(String(S.pin||"")))S.pin="1234";
+}catch(e){
+  S=Object.assign({},defaultState);
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
-function runDailyRollover(){
-  const today=todayISO();
-  // Update any sample/old date tags to today and roll over unfinished tasks
-  S.exp.forEach(e=>{if(!e.date||e.date<today)e.date=today});
-  if(S.lastDate!==today){
-    S.blocks.forEach(b=>b[2]=0);
-    S.sunBlocks.forEach(b=>b[2]=0);
-    S.rems.forEach(r=>{if(!r.d)r.tm="08:30"});
-    S.lastDate=today;
-    save();
+// Bulletproof PIN Lock Controls
+let pinBuf="";
+function syncDots(){$$("#pinDots .pin-dot").forEach((el,i)=>el.classList.toggle("on",i<pinBuf.length))}
+function clearPin(){pinBuf="";syncDots()}
+function checkPin(){
+  const activePin=/^\d{4}$/.test(String(S.pin||""))?String(S.pin):"1234";
+  if(pinBuf===activePin){
+    $("#lockScreen").style.display="none";
+    clearPin();
+  }else{
+    toast("Wrong PIN (Default is 1234)");
+    clearPin();
   }
 }
-const defaultState={
-  pin:"1234",
-  lastDate:todayISO(),
-  dayMode:"college",
-  blocks:[
-    ["09:00","College Lectures & Pattern Drafting Lab",0],
-    ["11:00","Textile & Surface Ornamentation Studio",0],
-    ["13:00","College Wrap-Up & Lunch Break",0],
-    ["16:00","Next Project: Indo-Western Silhouette & Flat Sketch",0],
-    ["19:30","Portfolio Lookboard & Embroidery Notes",0]
-  ],
-  sunBlocks:[
-    ["10:00","Weekly Reset & College Notes Review",0],
-    ["12:30","Fabric Market Research & Thread Shade Swatches",0],
-    ["16:30","Interactive Portfolio & 3D Garment Preview Build",0],
-    ["20:00","Plan Monday College & Project Priorities",0]
-  ],
-  rems:[
-    {t:"Submit 12-head Indo-Western fashion illustration sheet",c:"College",p:"High",tm:"09:30",d:0},
-    {t:"Build interactive lookboard & fabric zoom for Next Project",c:"Next Project",p:"High",tm:"17:00",d:0},
-    {t:"Finalize Kutch mirror-work & peacock motif placement",c:"Next Project",p:"Medium",tm:"18:30",d:0},
-    {t:"Source cotton satin & muslin swatches",c:"Personal",p:"Low",tm:"14:30",d:0}
-  ],
-  rf:"All",rc:"College",
-  salary:45000,save:10000,
-  exp:[
-    {a:80,cat:"College & Canteen",m:"GPay",n:"College Canteen Tea & Snacks",date:todayISO()},
-    {a:180,cat:"Fabric & Art",m:"Samsung Wallet",n:"Muslin Swatch & Drawing Sheets",date:todayISO()}
-  ],
-  cat:"College & Canteen",
-  bills:[["Room / Rent",8000,1],["Wi-Fi & Mobile Plan",899,0],["College & Travel Pass",2200,0]],
-  ideaIdx:0,
-  newsFilter:"All"
-};
-
-let S=JSON.parse(localStorage.getItem(KEY)||"null")||defaultState;
-function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+function pressPin(d){
+  if(pinBuf.length<4){
+    pinBuf+=String(d);
+    syncDots();
+    if(pinBuf.length===4)setTimeout(checkPin,100);
+  }
+}
+$$("#lockScreen .kbtn[data-k]").forEach(btn=>btn.addEventListener("click",()=>pressPin(btn.dataset.k)));
+$("#pinClear").addEventListener("click",clearPin);
+$("#pinEnter").addEventListener("click",checkPin);
+$("#pinReset").addEventListener("click",()=>{S.pin="1234";save();clearPin();toast("PIN reset to 1234")});
+$("#lockBtn").addEventListener("click",()=>{clearPin();$("#lockScreen").style.display="flex"});
+$("#setPin").addEventListener("click",()=>{
+  const v=$("#newPin").value.trim();
+  if(!/^\d{4}$/.test(v))return toast("Enter exactly 4 digits");
+  S.pin=v;$("#newPin").value="";save();toast("New PIN saved");
+});
 
 // Automatic Next-Day Roll-Over Check
 function runDailyRollover(){
   const today=todayISO();
-  if(S.lastDate && S.lastDate!==today){
-    // Reset schedule blocks for the new day while keeping unfinished tasks queued
-    S.blocks.forEach(b=>b[2]=0);
-    S.sunBlocks.forEach(b=>b[2]=0);
-    S.rems.forEach(r=>{if(!r.d)r.tm="08:30"});
+  if(Array.isArray(S.exp))S.exp.forEach(e=>{if(!e.date||e.date<today)e.date=today});
+  if(S.lastDate!==today){
+    if(Array.isArray(S.blocks))S.blocks.forEach(b=>b[2]=0);
+    if(Array.isArray(S.sunBlocks))S.sunBlocks.forEach(b=>b[2]=0);
+    if(Array.isArray(S.rems))S.rems.forEach(r=>{if(!r.d)r.tm="08:30"});
     S.lastDate=today;
     save();
-    setTimeout(()=>toast("New day! Unfinished tasks carried forward to 08:30 AM"),600);
   }
 }
 
@@ -438,22 +425,6 @@ function checkAutoUrl(){
     history.replaceState({},document.title,location.pathname);
   }
 }
-
-// PIN Lock
-let pinBuf="";
-function pressPin(d){if(pinBuf.length<4){pinBuf+=d;syncDots();if(pinBuf.length===4)setTimeout(checkPin,110)}}
-function clearPin(){pinBuf="";syncDots()}
-function syncDots(){$$("#pinDots .pin-dot").forEach((el,i)=>el.classList.toggle("on",i<pinBuf.length))}
-function checkPin(){
-  if(pinBuf===S.pin){$("#lockScreen").style.display="none";clearPin()}
-  else{toast("Incorrect PIN");clearPin()}
-}
-$("#lockBtn").onclick=()=>{clearPin();$("#lockScreen").style.display="flex"};
-$("#setPin").onclick=()=>{
-  const v=$("#newPin").value.trim();
-  if(!/^\d{4}$/.test(v))return toast("Enter 4 digits");
-  S.pin=v;$("#newPin").value="";save();toast("New PIN saved");
-};
 
 const IDEAS=[
   {tag:"Fashion Collection",title:"Modular Bandhgala Jacket with Detachable Kutch Mirror Lapels",desc:"Pair structured Western tailoring on ivory cotton satin with hand-embroidered peacock & floral vine panels that button onto the lapel."},
@@ -585,7 +556,6 @@ $("#fill").onclick=()=>{const t=$("#sms").value,m=t.match(/(?:Rs\.?|INR|₹)\s?(
   if(!m){toast("Could not find ₹ amount");return}$("#amt").value=m[1].replace(/,/g,"");$("#sms").value="";toast("Amount filled in")};
 $("#editSal").onclick=()=>{const v=parseFloat(prompt("Monthly budget/salary in ₹",S.salary));if(v>0){S.salary=v;save();renderMoney()}};
 
-// Voice & Exports
 $("#mic").onclick=()=>{
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR)return toast("Voice input ready in Chrome on Android");
