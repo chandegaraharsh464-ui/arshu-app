@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arshu-pwa-v1';
+const CACHE_NAME = 'arshu-college-v1';
 const ASSETS = [
   './',
   './index.html',
