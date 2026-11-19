@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#FAF8F5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Arshu — Daily & Finance</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root {
+      --bg: #FAF8F5;
+      --surface: #FFFFFF;
+      --surface-alt: #F4EFE8;
+      --border: #EAE4DC;
+      --text: #1E1C1A;
+      --muted: #766E65;
+      --accent: #B8864B;
+      --accent-dark: #9A6B32;
+      --accent-soft: #F7EFE4;
+      --sage: #2E7D5B;
+      --sage-soft: #E9F5EF;
+      --danger: #B84A39;
+      --danger-soft: #FCEEEB;
+      --shadow: 0 6px 20px rgba(30, 28, 26, 0.05);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 92px;
+      overflow-x: hidden;
+    }
+
+    /* PIN Lock Screen */
+    #lockScreen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .monogram {
+      width: 68px;
+      height: 68px;
+      border-radius: 22px;
+      background: var(--text);
+      border: 2px solid var(--accent);
+      color: var(--bg);
+      font-family: Georgia, serif;
+      font-size: 34px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .pin-dots {
+      display: flex;
+      gap: 14px;
+      margin: 18px 0 26px;
+    }
+    .pin-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      background: transparent;
+      transition: 0.15s;
+    }
+    .pin-dot.filled { background: var(--accent); }
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 74px);
+      gap: 14px;
+    }
+    .key-btn {
+      height: 62px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 22px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .key-btn:active { background: var(--accent-soft); transform: scale(0.96); }
+
+    /* Top Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(250, 248, 245, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      background: var(--text);
+      border: 1.5px solid var(--accent);
+      color: var(--bg);
+      font-family: Georgia, serif;
+      font-weight: 700;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }
+    .brand p { margin: 0; font-size: 11.5px; color: var(--muted); }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .icon-btn {
+      position: relative;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      height: 38px;
+      min-width: 38px;
+      padding: 0 10px;
+      border-radius: 12px;
+      font-size: 15px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .badge-count {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 99px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+
+    /* Main Container */
+    main { max-width: 520px; margin: 0 auto; padding: 14px 16px; }
+    .tab-view { display: none; }
+    .tab-view.active { display: block; }
+
+    /* Cards & Typography */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 15px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .card-title { font-size: 14px; font-weight: 700; margin: 0; }
+    .subtext { font-size: 12px; color: var(--muted); }
+
+    /* Active Reminder Banner */
+    .reminder-banner {
+      background: linear-gradient(135deg, #FFFDF9 0%, #F7EFE4 100%);
+      border: 1px solid #E3CFAF;
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 99px;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+    .pill.sage { background: var(--sage-soft); color: var(--sage); }
+    .pill.danger { background: var(--danger-soft); color: var(--danger); }
+
+    /* Grid Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 13px;
+    }
+    .stat-label { font-size: 11.5px; color: var(--muted); margin-bottom: 4px; }
+    .stat-value { font-size: 20px; font-weight: 700; }
+
+    /* Buttons & Inputs */
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-primary { background: var(--text); color: #fff; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-soft { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
+    .btn-sage { background: var(--sage-soft); color: var(--sage); }
+    .btn-sm { padding: 6px 10px; font-size: 11.5px; border-radius: 10px; }
+    .btn-block { width: 100%; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13.5px;
+      font-family: inherit;
+      margin-bottom: 9px;
+    }
+    .row { display: flex; gap: 8px; align-items: center; }
+
+    /* Timeline Items */
+    .slot-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .slot-item.done { opacity: 0.65; background: var(--sage-soft); border-color: #C7E5D6; }
+    .slot-item.progress { border-color: var(--accent); background: #FFFDF8; }
+    .slot-time { font-size: 11.5px; font-weight: 700; color: var(--accent-dark); min-width: 66px; }
+    .slot-title { font-size: 13.5px; font-weight: 600; }
+
+    /* Progress Bar */
+    .bar-track {
+      width: 100%;
+      height: 8px;
+      background: var(--surface-alt);
+      border-radius: 99px;
+      overflow: hidden;
+      margin: 7px 0;
+    }
+    .bar-fill { height: 100%; background: var(--sage); border-radius: 99px; transition: width 0.3s; }
+
+    /* Chips */
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .chip {
+      padding: 6px 11px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .chip.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+    /* Bottom Navigation */
+    nav.bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 8px 6px 12px;
+      z-index: 60;
+    }
+    .nav-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+    }
+    .nav-btn span.ico { font-size: 18px; }
+    .nav-btn.active { color: var(--accent-dark); }
+
+    /* Modal / Drawer */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(30, 28, 26, 0.45);
+      z-index: 200;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-sheet {
+      background: var(--surface);
+      width: 100%;
+      max-width: 520px;
+      max-height: 85vh;
+      overflow-y: auto;
+      border-radius: 24px 24px 0 0;
+      padding: 18px 16px 28px;
+    }
+    .toast {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 99px;
+      font-size: 12.5px;
+      z-index: 300;
+      display: none;
+      box-shadow: var(--shadow);
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PIN Lock Screen -->
+  <div id="lockScreen">
+    <div class="monogram">A</div>
+    <h2 style="margin:0;font-size:20px;">Arshu</h2>
+    <p class="subtext" style="margin-top:4px;">Enter 4-digit PIN (Default: 1234)</p>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+    </div>
+    <div class="keypad">
+      <button class="key-btn" onclick="pressPin('1')">1</button>
+      <button class="key-btn" onclick="pressPin('2')">2</button>
+      <button class="key-btn" onclick="pressPin('3')">3</button>
+      <button class="key-btn" onclick="pressPin('4')">4</button>
+      <button class="key-btn" onclick="pressPin('5')">5</button>
+      <button class="key-btn" onclick="pressPin('6')">6</button>
+      <button class="key-btn" onclick="pressPin('7')">7</button>
+      <button class="key-btn" onclick="pressPin('8')">8</button>
+      <button class="key-btn" onclick="pressPin('9')">9</button>
+      <button class="key-btn" style="font-size:13px;" onclick="clearPin()">Clear</button>
+      <button class="key-btn" onclick="pressPin('0')">0</button>
+      <button class="key-btn" style="font-size:13px;color:var(--accent-dark);" onclick="unlockApp()">Enter</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Top Bar -->
+  <header>
+    <div class="brand">
+      <div class="brand-badge">A</div>
+      <div>
+        <h1>Arshu</h1>
+        <p id="todayDateLabel">Daily Schedule & ₹ Manager</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" title="Voice Quick Add" onclick="startVoiceInput()">🎙️</button>
+      <button class="icon-btn" title="Reminder Messages" onclick="openMsgCenter()">
+        🔔
+        <span class="badge-count" id="unreadBadge">0</span>
+      </button>
+      <button class="icon-btn" title="Lock App" onclick="lockApp()">🔒</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: TODAY -->
+    <section id="tab-today" class="tab-view active">
+      <div class="reminder-banner" onclick="openMsgCenter()">
+        <div>
+          <span class="pill">Reminder Msg</span>
+          <div id="topBannerMsg" style="font-size:13px;font-weight:600;margin-top:4px;">Loading next reminder...</div>
+        </div>
+        <span style="font-size:18px;">›</span>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">Schedule Done</div>
+          <div class="stat-value" id="statSchedule">0/0</div>
+          <div class="subtext" id="statStreak">Streak: 1 day</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Safe Daily Spend</div>
+          <div class="stat-value" style="color:var(--sage);" id="statDailySafe">₹0</div>
+          <div class="subtext" id="statSpentToday">Spent today: ₹0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Today's Timeline</h3>
+          <div class="row">
+            <button class="btn btn-soft btn-sm" onclick="loadRoutinePreset('weekday')">Weekday</button>
+            <button class="btn btn-soft btn-sm" onclick="loadRoutinePreset('weekend')">Sunday</button>
+            <button class="btn btn-soft btn-sm" onclick="exportICS()">⏰ Sync</button>
+          </div>
+        </div>
+        <p class="subtext" style="margin-top:0;">Tap a block to cycle: Pending → In Progress → Done</p>
+        <div id="scheduleList"></div>
+
+        <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+          <div class="row">
+            <input type="time" id="newSlotTime" style="max-width:118px;margin-bottom:0;" />
+            <input type="text" id="newSlotTitle" placeholder="Add schedule block..." style="margin-bottom:0;" />
+            <button class="btn btn-primary" onclick="addScheduleSlot()">+</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: REMINDERS -->
+    <section id="tab-reminders" class="tab-view">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Work & Personal Reminders</h3>
+          <button class="btn btn-soft btn-sm" onclick="requestPhoneNotif()">Enable Alerts</button>
+        </div>
+        <div class="chip-row" id="taskFilterChips">
+          <span class="chip active" onclick="setTaskFilter('All', this)">All</span>
+          <span class="chip" onclick="setTaskFilter('Glox Work', this)">Glox Work</span>
+          <span class="chip" onclick="setTaskFilter('Design Studio', this)">Design Studio</span>
+          <span class="chip" onclick="setTaskFilter('Personal', this)">Personal</span>
+        </div>
+
+        <input type="text" id="newTaskTitle" placeholder="What do you need to remember?" />
+        <div class="row">
+          <select id="newTaskCat">
+            <option value="Glox Work">Glox Work</option>
+            <option value="Design Studio">Design Studio</option>
+            <option value="Personal">Personal</option>
+          </select>
+          <select id="newTaskPrio">
+            <option value="High">High Priority</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+          <input type="time" id="newTaskTime" />
+        </div>
+        <button class="btn btn-primary btn-block" onclick="addTask()">+ Add Reminder & Schedule Alert</button>
+      </div>
+
+      <div id="taskList"></div>
+    </section>
+
+    <!-- TAB 3: SALARY & ₹ -->
+    <section id="tab-finance" class="tab-view">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Monthly Salary & Savings Jar</h3>
+          <button class="btn btn-soft btn-sm" onclick="toggleSalaryEdit()">Edit</button>
+        </div>
+
+        <div id="salaryEditBox" style="display:none;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+          <label class="subtext">Monthly Salary (₹)</label>
+          <input type="number" id="inputSalary" />
+          <label class="subtext">Monthly Savings Target Jar (₹)</label>
+          <input type="number" id="inputSavingsGoal" />
+          <button class="btn btn-primary btn-sm" onclick="saveSalarySettings()">Save Budget</button>
+        </div>
+
+        <div class="stats-grid" style="margin-bottom:8px;">
+          <div>
+            <div class="subtext">Salary</div>
+            <div style="font-size:17px;font-weight:700;" id="dispSalary">₹45,000</div>
+          </div>
+          <div>
+            <div class="subtext">Remaining Spendable</div>
+            <div style="font-size:17px;font-weight:700;color:var(--sage);" id="dispRemaining">₹0</div>
+          </div>
+        </div>
+        <div class="subtext">Savings Jar Goal: <strong id="dispSavingsGoal">₹10,000</strong> locked</div>
+        <div class="bar-track"><div class="bar-fill" id="savingsBar" style="width:100%;"></div></div>
+      </div>
+
+      <!-- Quick & Auto Expense Logger -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Log Expense (Auto / Quick)</h3>
+          <button class="btn btn-sage btn-sm" onclick="simulateAutoPay()">⚡ Test GPay Auto</button>
+        </div>
+
+        <div class="chip-row" id="expCatChips">
+          <span class="chip active" onclick="selectExpCat('Chai & Snacks', this)">Chai & Snacks</span>
+          <span class="chip" onclick="selectExpCat('Fuel / Travel', this)">Fuel / Travel</span>
+          <span class="chip" onclick="selectExpCat('Food', this)">Food</span>
+          <span class="chip" onclick="selectExpCat('Bills', this)">Bills</span>
+          <span class="chip" onclick="selectExpCat('Shopping', this)">Shopping</span>
+        </div>
+
+        <div class="row">
+          <input type="number" id="expAmount" placeholder="Amount ₹" style="margin-bottom:0;" />
+          <select id="expMode" style="margin-bottom:0;">
+            <option value="GPay">GPay</option>
+            <option value="Samsung Wallet">Samsung Wallet</option>
+            <option value="Cash">Cash</option>
+          </select>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <input type="text" id="expNote" placeholder="Merchant or note (optional)" style="margin-bottom:0;" />
+          <button class="btn btn-primary" onclick="addExpenseManual()">Add</button>
+        </div>
+
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+          <div class="row">
+            <input type="text" id="smsPasteInput" placeholder="Paste Bank Debit SMS / UPI receipt..." style="margin-bottom:0;font-size:12px;" />
+            <button class="btn btn-soft btn-sm" onclick="parseSmsExpense()">Auto-Fill</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recurring Bills -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Monthly Recurring Bills</h3>
+          <span class="subtext" id="billsTotalLabel">₹0</span>
+        </div>
+        <div id="billsList"></div>
+        <div class="row" style="margin-top:8px;">
+          <input type="text" id="newBillName" placeholder="Bill name (e.g. Wi-Fi)" style="margin-bottom:0;" />
+          <input type="number" id="newBillAmt" placeholder="₹" style="max-width:95px;margin-bottom:0;" />
+          <button class="btn btn-soft" onclick="addBill()">+</button>
+        </div>
+      </div>
+
+      <!-- Recent Expenses -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Recent Spending Log</h3>
+          <span class="subtext" id="modeSplitLabel"></span>
+        </div>
+        <div id="expenseList"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: REVIEW & AUTO-SETUP -->
+    <section id="tab-review" class="tab-view">
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:8px;">End-of-Day Summary</h3>
+        <p class="subtext" id="eodSummaryText" style="line-height:1.5;color:var(--text);"></p>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn btn-accent btn-block" onclick="shareWhatsAppReport()">📤 Send WhatsApp Summary</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:6px;">Vivo Y21 Zero-Typing Auto-Capture</h3>
+        <p class="subtext" style="line-height:1.45;">
+          To automatically log <strong>GPay</strong>, <strong>Samsung Wallet</strong>, and <strong>Bank SMS</strong> payments without opening the app:
+        </p>
+        <ol class="subtext" style="padding-left:18px;line-height:1.55;color:var(--text);">
+          <li>Install <strong>MacroDroid</strong> on your Vivo Y21.</li>
+          <li>Trigger: <em>Notification Received</em> from <strong>GPay</strong> or <strong>Samsung Wallet</strong> containing <code>₹</code> or <code>Paid</code>.</li>
+          <li>Action: <em>Open Website</em> with your deployed URL + <code>?auto=1&amp;amount=150&amp;mode=GPay&amp;merchant=UPI</code>.</li>
+          <li>Set Vivo Y21 Battery mode for Chrome &amp; MacroDroid to <strong>Unrestricted</strong>.</li>
+        </ol>
+        <button class="btn btn-soft btn-block" onclick="copyAutoUrlTemplate()">📋 Copy Auto-Trigger URL Template</button>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:8px;">Security & Offline Backup</h3>
+        <div class="row">
+          <input type="password" id="newPinInput" maxlength="4" placeholder="New 4-digit PIN" style="margin-bottom:0;" />
+          <button class="btn btn-primary" onclick="updatePin()">Set PIN</button>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn btn-soft btn-block" onclick="exportCSV()">⬇️ Export Expenses CSV</button>
+          <button class="btn btn-soft btn-block" onclick="exportJSON()">💾 Backup JSON</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- In-App Notification & Reminder Message Center Modal -->
+  <div class="modal-backdrop" id="msgModal" onclick="if(event.target===this) closeMsgCenter()">
+    <div class="modal-sheet">
+      <div class="card-header">
+        <h3 class="card-title" style="font-size:16px;">In-App Reminder Messages</h3>
+        <button class="btn btn-soft btn-sm" onclick="closeMsgCenter()">Close</button>
+      </div>
+      <div class="row" style="margin-bottom:12px;">
+        <button class="btn btn-sage btn-sm" onclick="triggerTestReminderMsg()">+ Send Test Reminder Msg</button>
+        <button class="btn btn-soft btn-sm" onclick="markAllMsgsRead()">Mark All Read</button>
+      </div>
+      <div id="msgFeedList"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('today', this)"><span class="ico">📅</span>Today</button>
+    <button class="nav-btn" onclick="switchTab('reminders', this)"><span class="ico">✅</span>Reminders</button>
+    <button class="nav-btn" onclick="switchTab('finance', this)"><span class="ico">₹</span>Salary & ₹</button>
+    <button class="nav-btn" onclick="switchTab('review', this)"><span class="ico">⚙️</span>Auto & Review</button>
+  </nav>
+
+  <script>
+    const STORAGE_KEY = 'arshu_app_state_v1';
+
+    const defaultState = {
+      pin: '1234',
+      salary: 45000,
+      savingsGoal: 10000,
+      selectedExpCat: 'Chai & Snacks',
+      taskFilter: 'All',
+      schedule: [
+        { id: 1, time: '09:30', title: 'Morning Planning & Priority Check', status: 'done' },
+        { id: 2, time: '10:30', title: 'Glox Partner Outreach & Follow-up Calls', status: 'progress' },
+        { id: 3, time: '14:30', title: 'Field Visit / Client Onboarding Review', status: 'pending' },
+        { id: 4, time: '18:30', title: 'Indo-Western Design & Portfolio Studio', status: 'pending' },
+        { id: 5, time: '21:30', title: 'Nightly Expense & Task Review', status: 'pending' }
+      ],
+      tasks: [
+        { id: 101, title: 'Follow up with luxury salon leads', cat: 'Glox Work', prio: 'High', time: '11:30', done: false },
+        { id: 102, title: 'Finalize Kutch embroidery motif placement', cat: 'Design Studio', prio: 'Medium', time: '19:00', done: false },
+        { id: 103, title: 'Check mobile recharge due date', cat: 'Personal', prio: 'Low', time: '20:00', done: false }
+      ],
+      bills: [
+        { id: 201, name: 'Room / Rent', amount: 8000, paid: true },
+        { id: 202, name: 'Wi-Fi & Mobile Plan', amount: 899, paid: false },
+        { id: 203, name: 'Monthly Fuel Pass', amount: 2500, paid: false }
+      ],
+      expenses: [
+        { id: 301, amount: 60, cat: 'Chai & Snacks', mode: 'GPay', note: 'Morning Tea & Nashta', date: new Date().toISOString().slice(0, 10) },
+        { id: 302, amount: 200, cat: 'Fuel / Travel', mode: 'Samsung Wallet', note: 'Petrol Pump', date: new Date().toISOString().slice(0, 10) }
+      ],
+      messages: [
+        { id: 401, title: 'Glox Follow-Up Reminder', body: 'Call pending salon partners before 12:30 PM.', time: '10:30 AM', read: false },
+        { id: 402, title: 'Daily Safe-to-Spend Active', body: 'Your ₹10,000 savings jar is locked safely.', time: '09:00 AM', read: false }
+      ]
+    };
+
+    let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || defaultState;
+    let enteredPin = '';
+    let alertedKeys = new Set();
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      renderAll();
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.display = 'block';
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2600);
+    }
+
+    // PIN Lock Logic
+    function pressPin(digit) {
+      if (enteredPin.length >= 4) return;
+      enteredPin += digit;
+      updatePinDots();
+      if (enteredPin.length === 4) {
+        setTimeout(unlockApp, 120);
+      }
+    }
+    function clearPin() {
+      enteredPin = '';
+      updatePinDots();
+    }
+    function updatePinDots() {
+      const dots = document.querySelectorAll('#pinDots .pin-dot');
+      dots.forEach((d, idx) => d.classList.toggle('filled', idx < enteredPin.length));
+    }
+    function unlockApp() {
+      if (enteredPin === state.pin) {
+        document.getElementById('lockScreen').style.display = 'none';
+        enteredPin = '';
+        updatePinDots();
+      } else {
+        showToast('Incorrect PIN');
+        clearPin();
+      }
+    }
+    function lockApp() {
+      clearPin();
+      document.getElementById('lockScreen').style.display = 'flex';
+    }
+    function updatePin() {
+      const val = document.getElementById('newPinInput').value.trim();
+      if (!/^\d{4}$/.test(val)) return showToast('Enter exactly 4 digits');
+      state.pin = val;
+      document.getElementById('newPinInput').value = '';
+      saveState();
+      showToast('PIN updated successfully');
+    }
+
+    // URL Auto-Capture Listener (?auto=1&amount=150&mode=GPay&merchant=Cafe)
+    function checkAutoCaptureUrl() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('auto') === '1') {
+        const amt = parseFloat(params.get('amount') || '0');
+        const mode = params.get('mode') || 'GPay';
+        const merchant = params.get('merchant') || 'UPI Payment';
+        if (amt > 0) {
+          const cat = autoCategorize(merchant);
+          const todayStr = new Date().toISOString().slice(0, 10);
+          state.expenses.unshift({
+            id: Date.now(),
+            amount: amt,
+            cat,
+            mode,
+            note: merchant + ' (Auto)',
+            date: todayStr
+          });
+          state.messages.unshift({
+            id: Date.now() + 1,
+            title: `Auto-Logged ₹${amt} via ${mode}`,
+            body: `${merchant} categorized under ${cat}.`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            read: false
+          });
+          saveState();
+          showToast(`Auto-captured ₹${amt} (${mode})`);
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
+    function autoCategorize(text) {
+      const t = text.toLowerCase();
+      if (t.includes('petrol') || t.includes('fuel') || t.includes('uber') || t.includes('auto')) return 'Fuel / Travel';
+      if (t.includes('chai') || t.includes('tea') || t.includes('cafe') || t.includes('snack')) return 'Chai & Snacks';
+      if (t.includes('swiggy') || t.includes('zomato') || t.includes('food') || t.includes('hotel')) return 'Food';
+      if (t.includes('bill') || t.includes('recharge') || t.includes('wifi') || t.includes('electric')) return 'Bills';
+      return 'Shopping';
+    }
+
+    // Navigation
+    function switchTab(tab, btn) {
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // Schedule Actions
+    function cycleSlotStatus(id) {
+      const item = state.schedule.find(s => s.id === id);
+      if (!item) return;
+      const order = ['pending', 'progress', 'done'];
+      item.status = order[(order.indexOf(item.status) + 1) % order.length];
+      saveState();
+    }
+    function addScheduleSlot() {
+      const time = document.getElementById('newSlotTime').value || '16:00';
+      const title = document.getElementById('newSlotTitle').value.trim();
+      if (!title) return;
+      state.schedule.push({ id: Date.now(), time, title, status: 'pending' });
+      state.schedule.sort((a, b) => a.time.localeCompare(b.time));
+      document.getElementById('newSlotTitle').value = '';
+      saveState();
+      showToast('Schedule block added');
+    }
+    function loadRoutinePreset(type) {
+      if (type === 'weekday') {
+        state.schedule = [
+          { id: 1, time: '09:30', title: 'Morning Planning & Priority Check', status: 'pending' },
+          { id: 2, time: '10:30', title: 'Glox Partner Outreach & Calls', status: 'pending' },
+          { id: 3, time: '14:30', title: 'Salon / Spa Field Visits', status: 'pending' },
+          { id: 4, time: '18:30', title: 'Design & Coding Studio Block', status: 'pending' },
+          { id: 5, time: '21:30', title: 'Nightly Expense & Task Review', status: 'pending' }
+        ];
+      } else {
+        state.schedule = [
+          { id: 11, time: '10:00', title: 'Slow Morning & Weekly Reset', status: 'pending' },
+          { id: 12, time: '12:00', title: 'Indo-Western Sketching & Fabric Research', status: 'pending' },
+          { id: 13, time: '16:30', title: 'Creative Coding / Game Dev Session', status: 'pending' },
+          { id: 14, time: '20:30', title: 'Plan Next Week Priorities', status: 'pending' }
+        ];
+      }
+      saveState();
+      showToast('Loaded ' + type + ' routine');
+    }
+
+    // Reminders / Tasks
+    function setTaskFilter(cat, el) {
+      state.taskFilter = cat;
+      document.querySelectorAll('#taskFilterChips .chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      renderTasks();
+    }
+    function addTask() {
+      const title = document.getElementById('newTaskTitle').value.trim();
+      if (!title) return;
+      const cat = document.getElementById('newTaskCat').value;
+      const prio = document.getElementById('newTaskPrio').value;
+      const time = document.getElementById('newTaskTime').value || '17:00';
+      state.tasks.unshift({ id: Date.now(), title, cat, prio, time, done: false });
+      state.messages.unshift({
+        id: Date.now() + 2,
+        title: `New Reminder (${cat})`,
+        body: `${title} scheduled at ${time}.`,
+        time,
+        read: false
+      });
+      document.getElementById('newTaskTitle').value = '';
+      saveState();
+      showToast('Reminder added');
+    }
+    function toggleTask(id) {
+      const t = state.tasks.find(x => x.id === id);
+      if (t) t.done = !t.done;
+      saveState();
+    }
+
+    // Finance & Expenses
+    function toggleSalaryEdit() {
+      const box = document.getElementById('salaryEditBox');
+      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+      document.getElementById('inputSalary').value = state.salary;
+      document.getElementById('inputSavingsGoal').value = state.savingsGoal;
+    }
+    function saveSalarySettings() {
+      state.salary = Math.max(0, Number(document.getElementById('inputSalary').value) || 0);
+      state.savingsGoal = Math.max(0, Number(document.getElementById('inputSavingsGoal').value) || 0);
+      document.getElementById('salaryEditBox').style.display = 'none';
+      saveState();
+      showToast('Salary & Savings Jar updated');
+    }
+    function selectExpCat(cat, el) {
+      state.selectedExpCat = cat;
+      document.querySelectorAll('#expCatChips .chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+    }
+    function addExpenseManual() {
+      const amount = parseFloat(document.getElementById('expAmount').value);
+      if (!amount || amount <= 0) return showToast('Enter valid ₹ amount');
+      const mode = document.getElementById('expMode').value;
+      const note = document.getElementById('expNote').value.trim() || state.selectedExpCat;
+      state.expenses.unshift({
+        id: Date.now(),
+        amount,
+        cat: state.selectedExpCat,
+        mode,
+        note,
+        date: new Date().toISOString().slice(0, 10)
+      });
+      document.getElementById('expAmount').value = '';
+      document.getElementById('expNote').value = '';
+      saveState();
+      showToast(`Logged ₹${amount}`);
+    }
+    function parseSmsExpense() {
+      const raw = document.getElementById('smsPasteInput').value.trim();
+      if (!raw) return;
+      const match = raw.match(/(?:rs\.?|inr|₹)\s*([0-9]+(?:\.[0-9]{1,2})?)/i);
+      if (!match) return showToast('Could not detect ₹ amount in SMS');
+      const amt = parseFloat(match[1]);
+      const mode = /samsung/i.test(raw) ? 'Samsung Wallet' : 'GPay';
+      const cat = autoCategorize(raw);
+      state.expenses.unshift({
+        id: Date.now(),
+        amount: amt,
+        cat,
+        mode,
+        note: 'SMS Auto-Parsed',
+        date: new Date().toISOString().slice(0, 10)
+      });
+      document.getElementById('smsPasteInput').value = '';
+      saveState();
+      showToast(`Auto-logged ₹${amt} from SMS`);
+    }
+    function simulateAutoPay() {
+      const samples = [
+        { amount: 85, mode: 'GPay', merchant: 'Tapri Chai & Snacks' },
+        { amount: 250, mode: 'Samsung Wallet', merchant: 'HP Petrol Pump' },
+        { amount: 180, mode: 'GPay', merchant: 'Lunch Thali' }
+      ];
+      const pick = samples[Math.floor(Math.random() * samples.length)];
+      const cat = autoCategorize(pick.merchant);
+      state.expenses.unshift({
+        id: Date.now(),
+        amount: pick.amount,
+        cat,
+        mode: pick.mode,
+        note: pick.merchant + ' (Auto)',
+        date: new Date().toISOString().slice(0, 10)
+      });
+      state.messages.unshift({
+        id: Date.now() + 3,
+        title: `Auto-Captured ₹${pick.amount} (${pick.mode})`,
+        body: `${pick.merchant} logged automatically.`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false
+      });
+      saveState();
+      showToast(`Auto-logged ₹${pick.amount} via ${pick.mode}`);
+    }
+    function toggleBill(id) {
+      const b = state.bills.find(x => x.id === id);
+      if (b) b.paid = !b.paid;
+      saveState();
+    }
+    function addBill() {
+      const name = document.getElementById('newBillName').value.trim();
+      const amount = parseFloat(document.getElementById('newBillAmt').value);
+      if (!name || !amount) return;
+      state.bills.push({ id: Date.now(), name, amount, paid: false });
+      document.getElementById('newBillName').value = '';
+      document.getElementById('newBillAmt').value = '';
+      saveState();
+    }
+
+    // In-App Notification & Reminder Message Center
+    function openMsgCenter() {
+      document.getElementById('msgModal').classList.add('open');
+      renderMessages();
+    }
+    function closeMsgCenter() {
+      document.getElementById('msgModal').classList.remove('open');
+    }
+    function markAllMsgsRead() {
+      state.messages.forEach(m => m.read = true);
+      saveState();
+    }
+    function dismissMsg(id) {
+      state.messages = state.messages.filter(m => m.id !== id);
+      saveState();
+    }
+    function triggerTestReminderMsg() {
+      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      state.messages.unshift({
+        id: Date.now(),
+        title: 'Work & Expense Check-In',
+        body: 'Review pending Glox follow-ups and verify today’s GPay expenses.',
+        time: nowTime,
+        read: false
+      });
+      playChime();
+      saveState();
+      showToast('New in-app reminder message');
+    }
+
+    function requestPhoneNotif() {
+      if ('Notification' in window) {
+        Notification.requestPermission().then(res => {
+          showToast(res === 'granted' ? 'Phone notifications enabled' : 'Permission blocked in browser');
+        });
+      }
+    }
+
+    function playChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.22);
+      } catch (e) {}
+    }
+
+    // Live Minute Clock Checker for In-App Reminders
+    setInterval(() => {
+      const now = new Date();
+      const hhmm = now.toTimeString().slice(0, 5);
+      state.schedule.forEach(s => {
+        const key = 's_' + s.id + '_' + hhmm;
+        if (s.time === hhmm && s.status !== 'done' && !alertedKeys.has(key)) {
+          alertedKeys.add(key);
+          state.messages.unshift({
+            id: Date.now(),
+            title: 'Schedule Alert: ' + s.title,
+            body: `Scheduled for ${s.time}. Tap Today tab to mark Done.`,
+            time: hhmm,
+            read: false
+          });
+          playChime();
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Arshu Reminder', { body: `${s.time} — ${s.title}` });
+          }
+          saveState();
+        }
+      });
+    }, 15000);
+
+    // Voice Quick Input
+    function startVoiceInput() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) return showToast('Voice input not supported on this browser');
+      const rec = new SpeechRec();
+      rec.lang = 'en-IN';
+      showToast('Listening... speak expense or task');
+      rec.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        const numMatch = transcript.match(/(\d+)/);
+        if (numMatch) {
+          const amt = parseFloat(numMatch[1]);
+          state.expenses.unshift({
+            id: Date.now(),
+            amount: amt,
+            cat: autoCategorize(transcript),
+            mode: 'GPay',
+            note: transcript,
+            date: new Date().toISOString().slice(0, 10)
+          });
+          saveState();
+          showToast(`Voice logged ₹${amt}: ${transcript}`);
+        } else {
+          state.tasks.unshift({
+            id: Date.now(),
+            title: transcript,
+            cat: 'Glox Work',
+            prio: 'High',
+            time: '18:00',
+            done: false
+          });
+          saveState();
+          showToast(`Voice reminder added: ${transcript}`);
+        }
+      };
+      rec.start();
+    }
+
+    // ICS Native Phone Calendar / Alarm Sync
+    function exportICS() {
+      const todayCompact = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      let lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Arshu App//EN'];
+      state.schedule.forEach(s => {
+        const t = s.time.replace(':', '') + '00';
+        lines.push('BEGIN:VEVENT');
+        lines.push(`DTSTART:${todayCompact}T${t}`);
+        lines.push(`DTEND:${todayCompact}T${t}`);
+        lines.push(`SUMMARY:Arshu - ${s.title}`);
+        lines.push('BEGIN:VALARM', 'TRIGGER:-PT5M', 'ACTION:DISPLAY', 'DESCRIPTION:Reminder', 'END:VALARM');
+        lines.push('END:VEVENT');
+      });
+      lines.push('END:VCALENDAR');
+      downloadFile('arshu-daily-alarms.ics', lines.join('\r\n'), 'text/calendar');
+      showToast('Downloaded .ics alarms for Vivo Calendar');
+    }
+
+    function shareWhatsAppReport() {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const doneCount = state.schedule.filter(s => s.status === 'done').length;
+      const spentToday = state.expenses.filter(e => e.date === todayStr).reduce((a, b) => a + b.amount, 0);
+      const msg = `*Arshu Daily Summary (${todayStr})*%0A✅ Schedule Done: ${doneCount}/${state.schedule.length}%0A💸 Spent Today: ₹${spentToday}%0A📌 Pending Reminders: ${state.tasks.filter(t => !t.done).length}`;
+      window.open(`https://wa.me/?text=${msg}`, '_blank');
+    }
+
+    function copyAutoUrlTemplate() {
+      const url = `${window.location.origin}${window.location.pathname}?auto=1&amount=100&mode=GPay&merchant=Merchant`;
+      navigator.clipboard?.writeText(url);
+      showToast('Copied MacroDroid URL template');
+    }
+
+    function exportCSV() {
+      const rows = ['Date,Category,Mode,Amount,Note', ...state.expenses.map(e => `${e.date},"${e.cat}",${e.mode},${e.amount},"${e.note}"`)];
+      downloadFile('arshu-expenses.csv', rows.join('\n'), 'text/csv');
+    }
+    function exportJSON() {
+      downloadFile('arshu-backup.json', JSON.stringify(state, null, 2), 'application/json');
+    }
+    function downloadFile(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+    }
+
+    // Renderers
+    function renderAll() {
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      document.getElementById('todayDateLabel').textContent = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+
+      // Unread Messages & Banner
+      const unread = state.messages.filter(m => !m.read);
+      const badge = document.getElementById('unreadBadge');
+      badge.textContent = unread.length;
+      badge.style.display = unread.length ? 'flex' : 'none';
+      const latestMsg = unread[0] || state.messages[0];
+      document.getElementById('topBannerMsg').textContent = latestMsg ? `${latestMsg.title} — ${latestMsg.body}` : 'All caught up for today!';
+
+      // Schedule
+      const doneCount = state.schedule.filter(s => s.status === 'done').length;
+      document.getElementById('statSchedule').textContent = `${doneCount}/${state.schedule.length}`;
+      document.getElementById('scheduleList').innerHTML = state.schedule.map(s => `
+        <div class="slot-item ${s.status}" onclick="cycleSlotStatus(${s.id})">
+          <div class="row">
+            <span class="slot-time">${s.time}</span>
+            <span class="slot-title">${s.title}</span>
+          </div>
+          <span class="pill ${s.status === 'done' ? 'sage' : ''}">${s.status === 'done' ? 'Done' : s.status === 'progress' ? 'Active' : 'Pending'}</span>
+        </div>
+      `).join('');
+
+      // Finance Calculations
+      const totalBills = state.bills.reduce((sum, b) => sum + b.amount, 0);
+      const totalExpenses = state.expenses.reduce((sum, e) => sum + e.amount, 0);
+      const spentToday = state.expenses.filter(e => e.date === todayStr).reduce((sum, e) => sum + e.amount, 0);
+      const spendablePool = Math.max(0, state.salary - state.savingsGoal - totalBills - totalExpenses);
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const daysLeft = Math.max(1, daysInMonth - now.getDate() + 1);
+      const safeDaily = Math.floor(spendablePool / daysLeft);
+
+      document.getElementById('statDailySafe').textContent = `₹${safeDaily.toLocaleString('en-IN')}`;
+      document.getElementById('statSpentToday').textContent = `Spent today: ₹${spentToday.toLocaleString('en-IN')}`;
+      document.getElementById('dispSalary').textContent = `₹${state.salary.toLocaleString('en-IN')}`;
+      document.getElementById('dispRemaining').textContent = `₹${spendablePool.toLocaleString('en-IN')}`;
+      document.getElementById('dispSavingsGoal').textContent = `₹${state.savingsGoal.toLocaleString('en-IN')}`;
+      document.getElementById('billsTotalLabel').textContent = `Total: ₹${totalBills.toLocaleString('en-IN')}`;
+
+      document.getElementById('billsList').innerHTML = state.bills.map(b => `
+        <div class="slot-item ${b.paid ? 'done' : ''}" onclick="toggleBill(${b.id})">
+          <div>
+            <div class="slot-title">${b.name}</div>
+            <div class="subtext">₹${b.amount.toLocaleString('en-IN')}</div>
+          </div>
+          <span class="pill ${b.paid ? 'sage' : 'danger'}">${b.paid ? 'Paid ✓' : 'Tap to Pay'}</span>
+        </div>
+      `).join('');
+
+      const gpayTotal = state.expenses.filter(e => e.mode === 'GPay').reduce((s, e) => s + e.amount, 0);
+      const samTotal = state.expenses.filter(e => e.mode === 'Samsung Wallet').reduce((s, e) => s + e.amount, 0);
+      document.getElementById('modeSplitLabel').textContent = `GPay ₹${gpayTotal} • Samsung ₹${samTotal}`;
+
+      document.getElementById('expenseList').innerHTML = state.expenses.slice(0, 12).map(e => `
+        <div class="slot-item" style="cursor:default;">
+          <div>
+            <div class="slot-title">${e.note}</div>
+            <div class="subtext">${e.cat} • ${e.mode} • ${e.date}</div>
+          </div>
+          <strong style="color:var(--danger);">-₹${e.amount}</strong>
+        </div>
+      `).join('');
+
+      // EOD Review
+      document.getElementById('eodSummaryText').innerHTML = `
+        You have completed <strong>${doneCount} of ${state.schedule.length}</strong> schedule blocks today and spent <strong>₹${spentToday.toLocaleString('en-IN')}</strong> against your safe daily allowance of <strong>₹${safeDaily.toLocaleString('en-IN')}</strong>.
+      `;
+
+      renderTasks();
+      renderMessages();
+    }
+
+    function renderTasks() {
+      const filtered = state.taskFilter === 'All' ? state.tasks : state.tasks.filter(t => t.cat === state.taskFilter);
+      document.getElementById('taskList').innerHTML = filtered.map(t => `
+        <div class="slot-item ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})">
+          <div>
+            <div class="slot-title">${t.done ? '✓ ' : ''}${t.title}</div>
+            <div class="subtext">${t.cat} • Due ${t.time}</div>
+          </div>
+          <span class="pill ${t.prio === 'High' ? 'danger' : ''}">${t.prio}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderMessages() {
+      document.getElementById('msgFeedList').innerHTML = state.messages.map(m => `
+        <div class="card" style="background:${m.read ? 'var(--bg)' : 'var(--accent-soft)'};padding:12px;margin-bottom:8px;">
+          <div class="card-header" style="margin-bottom:4px;">
+            <strong style="font-size:13px;">${m.title}</strong>
+            <span class="subtext">${m.time}</span>
+          </div>
+          <p class="subtext" style="margin:0 0 8px;color:var(--text);">${m.body}</p>
+          <button class="btn btn-soft btn-sm" onclick="dismissMsg(${m.id})">Dismiss</button>
+        </div>
+      `).join('') || '<p class="subtext">No reminder messages right now.</p>';
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+
+    checkAutoCaptureUrl();
+    renderAll();
+  </script>
+</body>
+</html>
